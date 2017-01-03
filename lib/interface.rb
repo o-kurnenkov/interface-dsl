@@ -1,4 +1,5 @@
 require 'dry-configurable'
+require 'factorymethods'
 
 module Interface
   extend ::Dry::Configurable

@@ -6,7 +6,7 @@ module Interface
 
     attr_reader :name, :parent
 
-    def initialize(name, parent=nil)
+    def initialize(name, parent = nil)
       @name = name
       @parent = parent
     end

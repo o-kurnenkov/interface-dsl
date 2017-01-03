@@ -8,19 +8,10 @@ Gem::Specification.new do |spec|
   spec.version       = Interface::Dsl::VERSION
   spec.authors       = ["Oleksiy Kurnenkov"]
   spec.email         = ["oleksiy.kurnenkov@onapp.com"]
-
+  spec.licenses      = ['MIT']
   spec.summary       = %q{Interface description DSL}
   spec.description   = %q{Make your Interfaces declarative!}
   spec.homepage      = "https://github.com/o-kurnenkov/interface-dsl"
-
-  # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
-  # to allow pushing to a single host or delete this section to allow pushing to any host.
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "TODO: Set to 'http://mygemserver.com'"
-  else
-    raise "RubyGems 2.0 or newer is required to protect against " \
-      "public gem pushes."
-  end
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
     f.match(%r{^(test|spec|features)/})
@@ -31,7 +22,9 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'hashie'
   spec.add_runtime_dependency 'dry-configurable'
+  spec.add_runtime_dependency 'factorymethods'
 
+  spec.add_development_dependency 'factorymethods'
   spec.add_development_dependency "bundler", "~> 1.13"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
