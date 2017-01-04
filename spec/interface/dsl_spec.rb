@@ -126,7 +126,7 @@ describe Interface::DSL do
     end
   end
 
-  describe 'access to endpoints' do
+  context 'interface endpoints' do
     let(:humanoid)       { Class.new }
     let(:try_thinking)   { Class.new }
     let(:happy_response) { "Happy Humanoid's Dream" }
@@ -141,14 +141,81 @@ describe Interface::DSL do
       end
     end
 
-    it 'calls .call method on endpoint implementation class' do
-      allow(try_thinking).to receive(:call).and_return(happy_response)
+    describe '#call' do
+      it 'calls .call method on endpoint implementation class' do
+        allow(try_thinking).to receive(:call).and_return(happy_response)
 
-      expect(humanoid.brain.think.call).to eq(happy_response)
-    end
+        expect(humanoid.brain.think.call).to eq(happy_response)
+      end
 
-    it 'fails with specific error if implementation is not callable' do
+      it 'fails with specific error if implementation is not callable' do
+        humanoid.interface(:failure) { |i| i.defpoint(:apparent) {}  }
 
+        expect { humanoid.failure.apparent.call }.to raise_error(::Interface::PortEntity::WTFError)
+      end
+
+      context 'input arguments validation' do
+        context 'passes arguments to implmentation class' do
+          before do
+            try_thinking.instance_eval <<-EOF
+              def call(options = {})
+                options[:input]
+              end
+            EOF
+          end
+
+          it 'accepts args (stupid name I know)' do
+            expect(humanoid.brain.think.call(input: 123)).to eq(123)
+          end
+
+          it 'passes block to implementation class' do
+            try_thinking.instance_eval <<-EOF
+              def call(&block)
+                block.call
+              end
+            EOF
+
+            expect(humanoid.brain.think.call { 123 }).to eq(123)
+          end
+
+          it 'works fine if implementation accepts arguments, but called without args' do
+            expect(humanoid.brain.think.call).to eq(nil)
+          end
+        end
+
+        context 'input arguments validation' do
+          let(:schema) do
+            Dry::Validation.Schema do
+              required(:address).schema do
+                required(:city).filled(min_size?: 3)
+
+                required(:country).schema do
+                  required(:name).filled
+                end
+              end
+            end
+          end
+
+          before do
+            humanoid.interface(:cognition) do |i|
+              i.defpoint(:criticism) do |thought|
+                thought.contract       schema
+                thought.implementation try_thinking
+              end
+            end
+
+            allow(try_thinking).to receive(:call).and_return(happy_response)
+          end
+
+          it 'fails with specific error if input does not comply with contract' do
+            expect { humanoid.cognition.criticism.call(bla: 'wat') }.to raise_error(::Interface::PortEntity::InvalidInputError)
+          end
+
+          it "fails with specific error if called with zero arity"  do
+            expect { humanoid.cognition.criticism.call }.to raise_error(::Interface::PortEntity::InvalidInputError)
+          end
+        end
+      end
     end
   end
 

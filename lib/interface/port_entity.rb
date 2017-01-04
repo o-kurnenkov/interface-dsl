@@ -2,7 +2,8 @@ module Interface
   # TODO
   # => define Schemas with dry-validation
   class PortEntity < Struct.new(:name)
-    WTFError = Class.new(StandardError)
+    WTFError          = Class.new(StandardError)
+    InvalidInputError = Class.new(StandardError)
 
     N_A = 'N/A'.freeze
     LIM = ('-' * 48).freeze
@@ -11,16 +12,27 @@ module Interface
       @description = text
     end
 
-    def call
+    def call(*args, &block)
       if @implementation.nil?
         fail(WTFError.new("WAT A HECK U DOIN'! THERE'S NO IMPLEMENTATION TO CALL!"))
       end
 
-      @implementation.call
+      if !@contract.nil?
+        fail(InvalidInputError.new("Empty argument list doesn not comply with the Contract")) if args.empty?
+
+        errors = @contract.call(*args).errors
+        fail(InvalidInputError.new(errors)) if errors.any?
+      end
+
+      @implementation.call(*args, &block)
     end
 
     def implementation(klass)
       @implementation = klass
+    end
+
+    def contract(validation_schema)
+      @contract = validation_schema
     end
 
     def returns(hash)
