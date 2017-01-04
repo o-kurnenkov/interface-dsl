@@ -76,6 +76,74 @@ MidnightCoderAPI = CodeMonkeyAPI.midnight_api # specific API
 MidnightCoderAPI.emergency_push.call          # usage
 ```
 
+## [HOT] Extend your API at any relevant point
+
+```ruby
+# Our BASE API class
+class HumanoidAPI
+  # Enable DSL
+  extend Interface::DSL
+
+  # declare main API
+  interface(:base_functions) do |base_api|
+    base_api.defpoint(:jump) do |op|
+      op.describe "Do jump!"
+      op.implementation BaseRobotJump
+    end
+  end
+end
+
+# API Extension class
+class JumpExtension
+  # Enable DSL
+  extend Interface::DSL
+
+  # declare extended API
+  interface(:jumping) do |ext|
+    ext.defpoint(:on_one_leg) do |op|
+      op.describe "Carefully jumps on one leg"
+      op.implementation RobotJumpingMaster
+    end
+  end
+end
+```
+
+Current legitimate API for HumanoidAPI is
+
+```ruby
+HumanoidAPI.base_functions.jump
+```
+
+Let's extend it with `JumpExtension`
+```ruby
+HumanoidAPI.base_functions.extend_api(as: 'weird', with_class: JumpExtension)
+```
+
+We've just declaratively extended our API to
+```ruby
+HumanoidAPI.base_functions.jump
+HumanoidAPI.base_functions.weird.jumping.on_one_leg
+```
+
+## [WIP] Declare contract for input data by means of dry-validation (available in [input-validation branch](https://github.com/o-kurnenkov/interface-dsl/tree/input-validation))
+```ruby
+  interface(:midnight_api) do |api|
+    api.defpoint(:emergency_push) do |op|
+      op.describe "Push the code, fall asleep"
+      op.implementation MidnightCodingOperation
+
+      # contract \
+      op.contract Dry::Validation.Schema do
+        required(:path_to_bed).schema do
+          required(:room).filled
+        end
+      end
+      # contract /
+    end
+  end
+```
+
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
