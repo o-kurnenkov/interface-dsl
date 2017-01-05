@@ -13,8 +13,8 @@ module Interface
     end
 
     def call(*args, &block)
-      if @implementation.nil?
-        fail(WTFError.new("WAT A HECK U DOIN'! THERE'S NO IMPLEMENTATION TO CALL!"))
+      if @handler.nil?
+        fail(WTFError.new("WAT A HECK U DOIN'! THERE'S NO HANDLER TO CALL!"))
       end
 
       if !@contract.nil?
@@ -24,11 +24,11 @@ module Interface
         fail(InvalidInputError.new(errors)) if errors.any?
       end
 
-      @implementation.call(*args, &block)
+      @handler.call(*args, &block)
     end
 
-    def implementation(klass)
-      @implementation = klass
+    def handler(klass)
+      @handler = klass
     end
 
     def contract(validation_schema)
@@ -50,7 +50,7 @@ module Interface
 #{LIM}
 Name:\t#{ name }
 Desc:\t#{        @description    || N_A}
-Responsible:\t#{ @implementation || N_A}
+Responsible:\t#{ @handler || N_A}
 Accepts:\t#{     @arguments      || N_A}
 Returns:
 \tsuccess:\t#{   @returns && @returns.fetch(:success, N_A) || N_A }

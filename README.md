@@ -52,7 +52,7 @@ class CodeMonkeyAPI
     # Define some endpoint
     api.defpoint(:emergency_push) do |op|
       op.describe "Push the code, fall asleep"
-      op.implementation MidnightCodingOperation
+      op.handler MidnightCodingOperation
     end
   end
 end
@@ -88,7 +88,7 @@ class HumanoidAPI
   interface(:base_functions) do |base_api|
     base_api.defpoint(:jump) do |op|
       op.describe "Do jump!"
-      op.implementation BaseRobotJump
+      op.handler BaseRobotJump
     end
   end
 end
@@ -102,7 +102,7 @@ class JumpExtension
   interface(:jumping) do |ext|
     ext.defpoint(:on_one_leg) do |op|
       op.describe "Carefully jumps on one leg"
-      op.implementation RobotJumpingMaster
+      op.handler RobotJumpingMaster
     end
   end
 end
@@ -130,7 +130,7 @@ HumanoidAPI.base_functions.weird.jumping.on_one_leg
   interface(:midnight_api) do |api|
     api.defpoint(:emergency_push) do |op|
       op.describe "Push the code, fall asleep"
-      op.implementation MidnightCodingOperation
+      op.handler MidnightCodingOperation
 
       # contract \
       op.contract Dry::Validation.Schema do
