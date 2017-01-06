@@ -47,12 +47,12 @@ class CodeMonkeyAPI
   extend Interface::DSL
 
   # Define some interface
-  interface(:midnight_api) do |api|
+  interface(:midnight_api) do
 
     # Define some endpoint
-    api.defpoint(:emergency_push) do |op|
-      op.describe "Push the code, fall asleep"
-      op.implementation MidnightCodingOperation
+    defpoint(:emergency_push) do |op|
+      describe "Push the code, fall asleep"
+      handler  MidnightCodingOperation
     end
   end
 end
@@ -85,10 +85,10 @@ class HumanoidAPI
   extend Interface::DSL
 
   # declare main API
-  interface(:base_functions) do |base_api|
-    base_api.defpoint(:jump) do |op|
-      op.describe "Do jump!"
-      op.implementation BaseRobotJump
+  interface(:base_functions) do
+    defpoint(:jump) do
+      describe "Do jump!"
+      handler  BaseRobotJump
     end
   end
 end
@@ -99,10 +99,10 @@ class JumpExtension
   extend Interface::DSL
 
   # declare extended API
-  interface(:jumping) do |ext|
-    ext.defpoint(:on_one_leg) do |op|
-      op.describe "Carefully jumps on one leg"
-      op.implementation RobotJumpingMaster
+  interface(:jumping) do
+    defpoint(:on_one_leg) do
+      describe "Carefully jumps on one leg"
+      handler RobotJumpingMaster
     end
   end
 end
@@ -127,13 +127,13 @@ HumanoidAPI.base_functions.weird.jumping.on_one_leg
 
 ## [WIP] Declare contract for input data by means of dry-validation (available in [input-validation branch](https://github.com/o-kurnenkov/interface-dsl/tree/input-validation))
 ```ruby
-  interface(:midnight_api) do |api|
-    api.defpoint(:emergency_push) do |op|
-      op.describe "Push the code, fall asleep"
-      op.implementation MidnightCodingOperation
+  interface(:midnight_api) do
+    defpoint(:emergency_push) do
+      describe "Push the code, fall asleep"
+      handler  MidnightCodingOperation
 
       # contract \
-      op.contract Dry::Validation.Schema do
+      contract Dry::Validation.Schema do
         required(:path_to_bed).schema do
           required(:room).filled
         end

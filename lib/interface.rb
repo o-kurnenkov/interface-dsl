@@ -1,4 +1,5 @@
 require 'dry-configurable'
+require 'dry-validation'
 require 'factorymethods'
 
 module Interface

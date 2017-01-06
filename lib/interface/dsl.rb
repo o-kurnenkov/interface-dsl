@@ -15,7 +15,7 @@ module Interface
       end
 
       interfaces.merge!(name => ::Interface::PortGroup.new(name, self).tap do |group|
-        yield(group)
+        group.instance_eval(&block)
       end)
     end
 
@@ -89,7 +89,7 @@ module Interface
     end
 
     def define_entity(name, &block)
-      ::Interface::PortEntity.new(name).tap { |port| yield(port) }
+      ::Interface::PortEntity.new(name).tap { |port| port.instance_eval(&block) }
     end
   end
 end
