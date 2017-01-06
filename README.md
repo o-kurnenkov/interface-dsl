@@ -1,4 +1,4 @@
-# Interface::Dsl
+# Interface::DSL
 
 ## Installation
 
