@@ -5,16 +5,16 @@ require "spec_helper"
 
 #   interface(:northbound) do |northbound|
 #     northbound.defpoint(:user_friendly) do |op|
-#       op.describe "does something with user"
-#       op.implementation Object
-#       op.accepts(user: Class, params: Hash)
-#       op.returns(
-#         success: [:ok,    Object],
-#         failure: [:error, String]
-#       )
+#       describe  "Does something"
+#       handler   SomeClass
+#       contract  Dry::Validation.Schema { required(:name).filled }
+#       returns   ResultAdapter
 #     end
 #   end
 # end
+
+# That's an ugly draft. Will be moved to shared
+class TryThinking; end
 
 describe Interface::DSL do
   let(:placebo) { Class.new }
@@ -40,9 +40,9 @@ describe Interface::DSL do
     end
 
     it 'does not mutate any interface' do
-      placebo.interface(:new_api) {  }
+      placebo.interface(:new_api) { }
 
-      expect { placebo.interface(:new_api) { |i| } }.to raise_error(Interface::DSL::ImmutableInterface)
+      expect { placebo.interface(:new_api) { } }.to raise_error(Interface::DSL::ImmutableInterface)
     end
 
     it 'exposes new interface as method' do
@@ -62,7 +62,7 @@ describe Interface::DSL do
 
   describe '.defpoint' do
     before do
-      allow(placebo).to receive(:define_entity).with(:test_endpoint) { { name => "test_endpoint_implementation" } }
+      allow(placebo).to receive(:define_entity).with(:test_endpoint) { { name => "test_endpoint_handler" } }
     end
 
     it 'fails upon attempt to define endpoint at top level API' do
@@ -70,16 +70,16 @@ describe Interface::DSL do
     end
 
     it 'does not define endpoint in a top level API as a side-effect' do
-      placebo.interface(:new_api) do |i|
-        i.defpoint(:test_endpoint) { |p| }
+      placebo.interface(:new_api) do
+        defpoint(:test_endpoint) { }
       end
 
       expect(placebo.points).to be_empty
     end
 
     it 'exposes new endpoint in a given interface' do
-      placebo.interface(:new_api) do |i|
-        i.defpoint(:test_endpoint) { |p| }
+      placebo.interface(:new_api) do
+        defpoint(:test_endpoint) { }
       end
 
       expect(placebo.new_api.points.keys).to eq(['test_endpoint'])
@@ -93,18 +93,18 @@ describe Interface::DSL do
 
     before do
       humanoid.extend(Interface::DSL)
-      humanoid.interface(:base_functions) do |ext|
-        ext.defpoint(:jump) {  }
+      humanoid.interface(:base_functions) do
+        defpoint(:jump) { }
       end
 
       jump_extension.extend(Interface::DSL)
-      jump_extension.interface(:jumping) do |ext|
-        ext.defpoint(:on_one_leg) {  }
+      jump_extension.interface(:jumping) do
+        defpoint(:on_one_leg) { }
       end
 
       think_extension.extend(Interface::DSL)
-      think_extension.interface(:thinking) do |ext|
-        ext.defpoint(:deeply) {  }
+      think_extension.interface(:thinking) do
+        defpoint(:thoroughly) { }
       end
     end
 
@@ -116,7 +116,7 @@ describe Interface::DSL do
     it 'extends top-level interface' do
       humanoid.extend_api(as: 'vital_functions', with_class: think_extension)
 
-      expect(humanoid.vital_functions.thinking.deeply.name).to eq(:deeply)
+      expect(humanoid.vital_functions.thinking.thoroughly.name).to eq(:thoroughly)
     end
 
     it 'extends nested interface' do
@@ -127,37 +127,38 @@ describe Interface::DSL do
   end
 
   context 'interface endpoints' do
+    let!(:try_thinking)  {  }
+
     let(:humanoid)       { Class.new }
-    let(:try_thinking)   { Class.new }
     let(:happy_response) { "Happy Humanoid's Dream" }
 
     before do
       humanoid.extend(Interface::DSL)
-
-      humanoid.interface(:brain) do |i|
-        i.defpoint(:think) do |thought|
-          thought.implementation try_thinking
+      humanoid.interface(:brain) do
+        defpoint(:think) do
+          handler TryThinking
         end
       end
     end
 
     describe '#call' do
-      it 'calls .call method on endpoint implementation class' do
-        allow(try_thinking).to receive(:call).and_return(happy_response)
+      it 'calls .call method on endpoint handler class' do
+        # allow(TryThinking).to receive(:call).and_return(happy_response)
+        allow(TryThinking).to receive(:call).and_return(happy_response)
 
         expect(humanoid.brain.think.call).to eq(happy_response)
       end
 
-      it 'fails with specific error if implementation is not callable' do
-        humanoid.interface(:failure) { |i| i.defpoint(:apparent) {}  }
+      it 'fails with specific error if handler is not callable' do
+        humanoid.interface(:failure) { defpoint(:apparent) {} }
 
         expect { humanoid.failure.apparent.call }.to raise_error(::Interface::PortEntity::WTFError)
       end
 
       context 'input arguments validation' do
-        context 'passes arguments to implmentation class' do
+        context 'passes arguments to handler class' do
           before do
-            try_thinking.instance_eval <<-EOF
+            TryThinking.instance_eval <<-EOF
               def call(options = {})
                 options[:input]
               end
@@ -168,8 +169,8 @@ describe Interface::DSL do
             expect(humanoid.brain.think.call(input: 123)).to eq(123)
           end
 
-          it 'passes block to implementation class' do
-            try_thinking.instance_eval <<-EOF
+          it 'passes block to handler class' do
+            TryThinking.instance_eval <<-EOF
               def call(&block)
                 block.call
               end
@@ -178,14 +179,14 @@ describe Interface::DSL do
             expect(humanoid.brain.think.call { 123 }).to eq(123)
           end
 
-          it 'works fine if implementation accepts arguments, but called without args' do
+          it 'works fine if handler accepts arguments, but called without args' do
             expect(humanoid.brain.think.call).to eq(nil)
           end
         end
 
         context 'input arguments validation' do
-          let(:schema) do
-            Dry::Validation.Schema do
+          before do
+            schema = Dry::Validation.Schema do
               required(:address).schema do
                 required(:city).filled(min_size?: 3)
 
@@ -194,17 +195,15 @@ describe Interface::DSL do
                 end
               end
             end
-          end
 
-          before do
-            humanoid.interface(:cognition) do |i|
-              i.defpoint(:criticism) do |thought|
-                thought.contract       schema
-                thought.implementation try_thinking
+            humanoid.interface(:cognition) do
+              defpoint(:criticism) do
+                contract  schema
+                handler   TryThinking
               end
             end
 
-            allow(try_thinking).to receive(:call).and_return(happy_response)
+            allow(TryThinking).to receive(:call).and_return(happy_response)
           end
 
           it 'fails with specific error if input does not comply with contract' do
