@@ -17,10 +17,51 @@ require "spec_helper"
 class TryThinking; end
 
 describe Interface::DSL do
-  let(:placebo) { Class.new }
+  let(:placebo)        { Class.new }
+  let(:settings_class) { Class.new }
 
   before do
     placebo.extend(Interface::DSL)
+  end
+
+  describe '.defsettings' do
+    describe 'behaviour' do
+      it 'exposes .defsettings method' do
+        expect(placebo.respond_to?(:defsettings)).to be_truthy
+        expect(placebo.respond_to?(:_settings)).to be_truthy
+      end
+
+      it 'allows client to set settings container class or module' do
+        placebo.defsettings(settings_class)
+
+        expect(placebo._settings).to eq(settings_class)
+      end
+    end
+
+    describe 'dependency on settings class' do
+      let(:configs) { [:allow_top_level_api_endpoints?] }
+
+      it 'fails if client sets instance instead of class or module' do
+        expect { placebo.defsettings(123) }.to raise_error(::Interface::Errors::UnexpectedInstanceError)
+      end
+
+      describe 'Default Settings' do
+        let(:config) { Interface::DefaultSettings.config }
+
+        it 'exposes .config method' do
+          expect(Interface::DefaultSettings).to respond_to(:config)
+        end
+
+        describe '.config' do
+          it 'implements all expected methods' do
+            expect(config.response_adapter).to eq(::Interface::DefaultAdapter)
+            expect(config.allow_top_level_api_endpoints?).to eq(false)
+          end
+        end
+      end
+
+      it 'fails if given settings class does not implement all necessary settings'
+    end
   end
 
   describe '.interface' do
@@ -42,7 +83,7 @@ describe Interface::DSL do
     it 'does not mutate any interface' do
       placebo.interface(:new_api) { }
 
-      expect { placebo.interface(:new_api) { } }.to raise_error(Interface::DSL::ImmutableInterface)
+      expect { placebo.interface(:new_api) { } }.to raise_error(::Interface::Errors::ImmutableInterfaceError)
     end
 
     it 'exposes new interface as method' do
@@ -66,7 +107,7 @@ describe Interface::DSL do
     end
 
     it 'fails upon attempt to define endpoint at top level API' do
-      expect { placebo.defpoint(:test_endpoint) }.to raise_error(::Interface::DSL::OrphanPort)
+      expect { placebo.defpoint(:test_endpoint) }.to raise_error(::Interface::Errors::OrphanPortError)
     end
 
     it 'does not define endpoint in a top level API as a side-effect' do
@@ -152,7 +193,7 @@ describe Interface::DSL do
       it 'fails with specific error if handler is not callable' do
         humanoid.interface(:failure) { defpoint(:apparent) {} }
 
-        expect { humanoid.failure.apparent.call }.to raise_error(::Interface::PortEntity::WTFError)
+        expect { humanoid.failure.apparent.call }.to raise_error(Interface::Errors::HandlerMissingError)
       end
 
       context 'input arguments validation' do
@@ -207,11 +248,11 @@ describe Interface::DSL do
           end
 
           it 'fails with specific error if input does not comply with contract' do
-            expect { humanoid.cognition.criticism.call(bla: 'wat') }.to raise_error(::Interface::PortEntity::InvalidInputError)
+            expect { humanoid.cognition.criticism.call(bla: 'wat') }.to raise_error(Interface::Errors::InvalidInputError)
           end
 
           it "fails with specific error if called with zero arity"  do
-            expect { humanoid.cognition.criticism.call }.to raise_error(::Interface::PortEntity::InvalidInputError)
+            expect { humanoid.cognition.criticism.call }.to raise_error(Interface::Errors::InvalidInputError)
           end
         end
       end

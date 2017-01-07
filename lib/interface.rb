@@ -1,9 +1,14 @@
 require 'dry-configurable'
 require 'dry-validation'
 require 'factorymethods'
+require 'interface/dsl/version'
+require 'hashie'
 
 module Interface
-  extend ::Dry::Configurable
+  autoload :PortGroup,       'interface/port_group'
+  autoload :PortEntity,      'interface/port_entity'
+  autoload :Errors,          'interface/errors'
 
-  setting(:allow_top_level_api_endpoints?, false)
+  autoload :DefaultSettings, 'interface/default_settings'
+  autoload :DefaultAdapter,  'interface/default_adapter'
 end
