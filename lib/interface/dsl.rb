@@ -46,11 +46,11 @@ module Interface
       _merge_point.merge!(as => with_class)
     end
 
-    def doc
+    def help
       _name = self.respond_to?(:name) ? self.name : self.class.name
       puts _name
       doc_all_endpoints
-      interfaces.each_pair { |_, i| i.doc }
+      interfaces.each_pair { |_, i| i.help }
     end
 
     def interfaces
@@ -90,7 +90,7 @@ module Interface
     end
 
     def print_doc
-      @print_doc ||= ->(i) { i.doc }
+      @print_doc ||= ->(i) { i.help }
     end
 
     def define_entity(name, &block)

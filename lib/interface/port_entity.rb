@@ -48,12 +48,7 @@ module Interface
     #     failure: [:error, String] }
     # end
 
-    #TODO
-    def before_call; end
-    def after_call; end
-    def wrap_call; end
-
-    def doc
+    def help
       puts <<-DOC
 #{LIM}
 Name:\t#{ name }

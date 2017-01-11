@@ -12,3 +12,5 @@ module Interface
   autoload :DefaultSettings, 'interface/default_settings'
   autoload :DefaultAdapter,  'interface/default_adapter'
 end
+
+autoload :ExampleAPI, 'example'

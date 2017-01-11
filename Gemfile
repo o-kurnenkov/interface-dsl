@@ -4,5 +4,6 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'dry-validation'
+gem 'terminal-table'
 gem 'factorymethods'
 gem 'hashie'
