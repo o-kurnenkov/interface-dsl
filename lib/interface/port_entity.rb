@@ -1,10 +1,5 @@
 module Interface
-  # TODO
-  # => define Schemas with dry-validation
-  class PortEntity < Struct.new(:name)
-    WTFError          = Class.new(StandardError)
-    InvalidInputError = Class.new(StandardError)
-
+  class PortEntity < Struct.new(:name, :default_adapter)
     N_A = 'N/A'.freeze
     LIM = ('-' * 48).freeze
 
@@ -14,17 +9,26 @@ module Interface
 
     def call(*args, &block)
       if @handler.nil?
-        fail(WTFError.new("WAT A HECK U DOIN'! THERE'S NO HANDLER TO CALL!"))
+        fail(::Interface::Errors::HandlerMissingError.new("Handler is undefined"))
       end
 
       if !@contract.nil?
-        fail(InvalidInputError.new("Empty argument list doesn not comply with the Contract")) if args.empty?
+        fail(::Interface::Errors::InvalidInputError.new("Empty argument list doesn not comply with the Contract")) if args.empty?
 
         errors = @contract.call(*args).errors
-        fail(InvalidInputError.new(errors)) if errors.any?
+        fail(::Interface::Errors::InvalidInputError.new(errors)) if errors.any?
       end
 
-      @handler.call(*args, &block)
+      # this is a decent source of bugs.
+      caller =  if !@adapter.nil?
+                  @adapter.new(@handler)
+                elsif !default_adapter.nil?
+                  default_adapter.new(@handler)
+                else
+                  @handler
+                end
+
+      caller.call(*args, &block)
     end
 
     def handler(klass)
@@ -35,10 +39,14 @@ module Interface
       @contract = validation_schema
     end
 
-    def returns(hash)
-      { success: [:ok,    Object],
-        failure: [:error, String] }
+    def returns(klass)
+      @adapter = klass
     end
+
+    # def returns(hash)
+    #   { success: [:ok,    Object],
+    #     failure: [:error, String] }
+    # end
 
     #TODO
     def before_call; end

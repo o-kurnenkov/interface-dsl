@@ -1,17 +1,18 @@
 require "interface"
-require "interface/dsl/version"
 
 module Interface
   module DSL
-    OrphanPort         = Class.new(StandardError)
-    ImmutableInterface = Class.new(StandardError)
+    def defsettings(configuration_class)
+      if !configuration_class.is_a?(Class) || !configuration_class.is_a?(Module)
+        fail(::Interface::Errors::UnexpectedInstanceError.new('Only classes and modules are supported'))
+      end
 
-    require "interface/port_group"
-    require "interface/port_entity"
+      @settings ||= configuration_class
+    end
 
     def interface(name, &block)
       if interfaces.key?(name)
-        fail(ImmutableInterface.new("Interface can't be redefined or reopened! Use .extend_api method"))
+        fail(::Interface::Errors::ImmutableInterfaceError.new("Interface can't be redefined or reopened! Use .extend_api method"))
       end
 
       interfaces.merge!(name => ::Interface::PortGroup.new(name, self).tap do |group|
@@ -60,12 +61,16 @@ module Interface
       @points ||= Hashie::Mash.new
     end
 
+    def _settings
+      @settings || ::Interface::DefaultSettings
+    end
+
     private
 
     def check_top_level_enpoint_policy
-      return if Interface.config.allow_top_level_api_endpoints? || !top_level?
+      return if _settings.config.allow_top_level_api_endpoints? || !top_level?
 
-      fail(OrphanPort.new("Can not be defined as a top level Interface"))
+      fail(::Interface::Errors::OrphanPortError.new("Can not be defined as a top level Interface"))
     end
 
     def top_level?
@@ -89,7 +94,7 @@ module Interface
     end
 
     def define_entity(name, &block)
-      ::Interface::PortEntity.new(name).tap { |port| port.instance_eval(&block) }
+      ::Interface::PortEntity.new(name, _settings.config.response_adapter).tap { |port| port.instance_eval(&block) }
     end
   end
 end
