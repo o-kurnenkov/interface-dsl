@@ -11,4 +11,6 @@ module Interface
 
   autoload :DefaultSettings, 'interface/default_settings'
   autoload :DefaultAdapter,  'interface/default_adapter'
+  autoload :DirectAdapter,   'interface/direct_adapter'
+  autoload :Response,        'interface/response'
 end

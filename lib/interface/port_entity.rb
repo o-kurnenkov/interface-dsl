@@ -1,7 +1,13 @@
 module Interface
-  class PortEntity < Struct.new(:name, :default_adapter)
+  class PortEntity
     N_A = 'N/A'.freeze
     LIM = ('-' * 48).freeze
+
+    attr_reader :name
+
+    def initialize(name, adapter)
+      @name, @adapter = name, adapter
+    end
 
     def describe(text)
       @description = text
@@ -19,16 +25,7 @@ module Interface
         fail(::Interface::Errors::InvalidInputError.new(errors)) if errors.any?
       end
 
-      # this is a decent source of bugs.
-      caller =  if !@adapter.nil?
-                  @adapter.new(@handler)
-                elsif !default_adapter.nil?
-                  default_adapter.new(@handler)
-                else
-                  @handler
-                end
-
-      caller.call(*args, &block)
+      _callee.call(*args, &block)
     end
 
     def handler(klass)
@@ -65,6 +62,14 @@ Returns:
 \tfailure:\t#{   @returns && @returns.fetch(:failure, N_A) || N_A }
 #{LIM}
       DOC
+    end
+
+    private
+
+    def _callee
+      return @handler if @adapter.nil?
+
+      @adapter.new(@handler)
     end
   end
 end

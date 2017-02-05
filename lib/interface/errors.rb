@@ -7,5 +7,6 @@ module Interface
     InvalidInputError       = Class.new(BaseError)
     HandlerMissingError     = Class.new(BaseError)
     UnexpectedInstanceError = Class.new(BaseError)
+    AdaptationError         = Class.new(BaseError)
   end
 end
