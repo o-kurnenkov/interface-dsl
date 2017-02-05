@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency 'terminal-table'
+  spec.add_runtime_dependency 'terminal-table', '~> 1.7'
   spec.add_runtime_dependency 'dry-validation'
 
   spec.add_runtime_dependency 'hashie', '~> 3.0'
