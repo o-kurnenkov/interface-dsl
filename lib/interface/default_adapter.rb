@@ -1,10 +1,6 @@
 module Interface
   class DefaultAdapter
-    CallingError   = Class.new(StandardError)
-    InterfaceError = Class.new(StandardError)
-
     extend FactoryMethods
-
     deffactory :call
 
     def initialize(callable)
@@ -13,7 +9,7 @@ module Interface
 
     def call(*args, &block)
       unless callable.respond_to?(:call)
-        fail(InterfaceError("#{callable.class} is not callable!"))
+        fail(Interface::Errors::AdaptationError.new("#{callable.class} is not callable!"))
       end
 
       _call(*args, &block)
@@ -24,14 +20,24 @@ module Interface
     attr_reader :callable
 
     def _call(*args, &block)
-      result = callable.call(*args, &block)
-      if result.is_a?(Array)
-        status, _result = result
-        status == :ok || fail(CallingError("Error while calling #{callable.class}: #{_result}"))
-        _result
-      else
-        result
-      end
+      status, _result = _handle_request(*args, &block)
+
+      # Response.__ok__(_result)
+      # Response.__error__(_result)
+      Response.public_send("__#{status}__", _result)
+    end
+
+    def _handle_request(*args, &block)
+      _wrap(callable.call(*args, &block))
+    rescue => e
+      [:error, e]
+    end
+
+    def _wrap(result)
+      return [:ok, result] unless result.is_a?(Array)
+
+      status, _result = result
+      status == :ok ? [:ok, _result] : [:error, _result]
     end
   end
 end

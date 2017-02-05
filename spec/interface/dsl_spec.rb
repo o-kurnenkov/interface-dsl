@@ -1,5 +1,11 @@
 require "spec_helper"
 
+# class SomeClass
+#   def self.call({})
+#     puts "ok"
+#   end
+# end
+
 # class SomeFacade
 #   extend Interface::DSL
 
@@ -8,13 +14,22 @@ require "spec_helper"
 #       describe  "Does something"
 #       handler   SomeClass
 #       contract  Dry::Validation.Schema { required(:name).filled }
-#       returns   ResultAdapter
+#       returns   Interface::DefaultAdapter
 #     end
 #   end
 # end
 
 # That's an ugly draft. Will be moved to shared
 class TryThinking; end
+class SomeHandler; end
+class IncrementAdapter < Struct.new(:callable)
+  extend FactoryMethods
+  deffactory :call
+
+  def call
+    callable.call + 1
+  end
+end
 
 describe Interface::DSL do
   let(:placebo)        { Class.new }
@@ -101,6 +116,22 @@ describe Interface::DSL do
     end
   end
 
+  describe '.returns' do
+    it 'exposes .retrurns method' do
+      expect(placebo.respond_to?(:returns)).to be_truthy
+    end
+
+    it 'uses DefaultAdapter by default' do
+      expect(placebo._interface_adapter).to eq(::Interface::DefaultAdapter)
+    end
+
+    it 'registers response adapter' do
+      placebo.returns(::Interface::DirectAdapter)
+
+      expect(placebo._interface_adapter).to eq(::Interface::DirectAdapter)
+    end
+  end
+
   describe '.defpoint' do
     before do
       allow(placebo).to receive(:define_entity).with(:test_endpoint) { { name => "test_endpoint_handler" } }
@@ -168,8 +199,6 @@ describe Interface::DSL do
   end
 
   context 'interface endpoints' do
-    let!(:try_thinking)  {  }
-
     let(:humanoid)       { Class.new }
     let(:happy_response) { "Happy Humanoid's Dream" }
 
@@ -187,13 +216,182 @@ describe Interface::DSL do
         # allow(TryThinking).to receive(:call).and_return(happy_response)
         allow(TryThinking).to receive(:call).and_return(happy_response)
 
-        expect(humanoid.brain.think.call).to eq(happy_response)
+        expect(humanoid.brain.think.call.result).to eq(happy_response)
       end
 
       it 'fails with specific error if handler is not callable' do
         humanoid.interface(:failure) { defpoint(:apparent) {} }
 
         expect { humanoid.failure.apparent.call }.to raise_error(Interface::Errors::HandlerMissingError)
+      end
+
+      context 'interface adaptation' do
+        let(:broken_api)   { 'broken API!' }
+        let(:valid_result) { 'valid result!' }
+
+        context 'default reliable adapter' do
+          before do
+            placebo.interface(:adaptation) do
+              defpoint(:service) do
+                handler SomeHandler
+              end
+            end
+          end
+
+          describe 'Response object' do
+            before { allow(SomeHandler).to receive(:call) { } }
+
+            it 'returns Response object' do
+              expect(placebo.adaptation.service.call.class).to eq(::Interface::Response)
+            end
+
+            it 'has ok? method' do
+              expect(placebo.adaptation.service.call).to respond_to(:ok?)
+            end
+
+            it 'has result method' do
+              expect(placebo.adaptation.service.call).to respond_to(:result)
+            end
+
+            it 'has errors method' do
+              expect(placebo.adaptation.service.call).to respond_to(:errors)
+            end
+          end
+
+          context 'when handler raises error' do
+            before { allow(SomeHandler).to receive(:call) { fail(broken_api) } }
+
+            it 'returns Response is not ok' do
+              expect(placebo.adaptation.service.call.ok?).to eq(false)
+            end
+
+            it 'contains exception object in colelction of errors' do
+              expect(placebo.adaptation.service.call.errors.first.message).to eq(broken_api)
+            end
+
+            it 'has void result' do
+              expect(placebo.adaptation.service.call.result).to be_nil
+            end
+          end
+
+          context 'when handler returns simple result' do
+            before { allow(SomeHandler).to receive(:call) { valid_result } }
+
+            it 'returns Response is not ok' do
+              expect(placebo.adaptation.service.call.ok?).to be_truthy
+            end
+
+            it 'has empty colelction of errors' do
+              expect(placebo.adaptation.service.call.errors).to be_empty
+            end
+
+            it 'has void result' do
+              expect(placebo.adaptation.service.call.result).to eq(valid_result)
+            end
+          end
+
+          context 'when handler returns [:ok, result]' do
+            before { allow(SomeHandler).to receive(:call) { [:ok, valid_result] } }
+
+            it 'returns Response is not ok' do
+              expect(placebo.adaptation.service.call.ok?).to be_truthy
+            end
+
+            it 'has empty colelction of errors' do
+              expect(placebo.adaptation.service.call.errors).to be_empty
+            end
+
+            it 'has void result' do
+              expect(placebo.adaptation.service.call.result).to eq(valid_result)
+            end
+          end
+
+          context 'when handler returns [:error, result]' do
+            before { allow(SomeHandler).to receive(:call) { [:error, broken_api] } }
+
+            it 'returns Response is not ok' do
+              expect(placebo.adaptation.service.call.ok?).to eq(false)
+            end
+
+            it 'contains exception object in colelction of errors' do
+              expect(placebo.adaptation.service.call.errors.first).to eq(broken_api)
+            end
+
+            it 'has void result' do
+              expect(placebo.adaptation.service.call.result).to be_nil
+            end
+          end
+        end
+
+        context 'direct adapter' do
+          let(:error) { Class.new(StandardError) }
+
+          before do
+            placebo.interface(:adaptation) do
+              returns ::Interface::DirectAdapter
+
+              defpoint(:service) do
+                handler SomeHandler
+              end
+            end
+          end
+
+          it "fails if handler is not callable" do
+            expect { placebo.adaptation.service.call }.to raise_error(::Interface::Errors::AdaptationError)
+          end
+
+          it "relays handler's response" do
+            allow(SomeHandler).to receive(:call) { valid_result }
+
+            expect(placebo.adaptation.service.call).to eq(valid_result)
+          end
+
+          it "relays handler's exceptions" do
+            allow(SomeHandler).to receive(:call) { raise(error.new) }
+
+            expect { placebo.adaptation.service.call }.to raise_error(error)
+          end
+        end
+
+        context 'use separate adapter per interface section' do
+          before do
+            allow(SomeHandler).to receive(:call).and_return(1)
+
+            placebo.interface(:base_adaptation) do
+              returns ::Interface::DirectAdapter
+
+              defpoint(:service) do
+                handler SomeHandler
+              end
+
+              interface(:nested_interface) do
+                returns IncrementAdapter
+
+                defpoint(:service) do
+                  handler SomeHandler
+                end
+              end
+
+              interface(:interface_with_default_adapter) do
+                defpoint(:service) do
+                  handler SomeHandler
+                end
+              end
+            end
+          end
+
+          it "relays handler's response in base section" do
+            expect(placebo.base_adaptation.service.call).to eq(1)
+          end
+
+          it "increments result in nested section" do
+            expect(placebo.base_adaptation.nested_interface.service.call).to eq(2)
+          end
+
+          it "use default adapter in nested section without explicitly declared adapter" do
+            expect(placebo.base_adaptation.interface_with_default_adapter.service.call.result).to eq(1)
+          end
+        end
       end
 
       context 'input arguments validation' do
@@ -207,7 +405,7 @@ describe Interface::DSL do
           end
 
           it 'accepts args (stupid name I know)' do
-            expect(humanoid.brain.think.call(input: 123)).to eq(123)
+            expect(humanoid.brain.think.call(input: 123).result).to eq(123)
           end
 
           it 'passes block to handler class' do
@@ -217,11 +415,11 @@ describe Interface::DSL do
               end
             EOF
 
-            expect(humanoid.brain.think.call { 123 }).to eq(123)
+            expect((humanoid.brain.think.call { 123 }).result).to eq(123)
           end
 
           it 'works fine if handler accepts arguments, but called without args' do
-            expect(humanoid.brain.think.call).to eq(nil)
+            expect(humanoid.brain.think.call.result).to eq(nil)
           end
         end
 

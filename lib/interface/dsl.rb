@@ -10,6 +10,10 @@ module Interface
       @settings ||= configuration_class
     end
 
+    def returns(result_adapter)
+      @result_adapter = result_adapter
+    end
+
     def interface(name, &block)
       if interfaces.key?(name)
         fail(::Interface::Errors::ImmutableInterfaceError.new("Interface can't be redefined or reopened! Use .extend_api method"))
@@ -20,10 +24,10 @@ module Interface
       end)
     end
 
-    def defpoint(name, &block)
+    def defpoint(_name, &block)
       check_top_level_enpoint_policy
 
-      points.merge!(name => define_entity(name, &block))
+      points.merge!(_name => define_entity(_name, &block))
     end
 
     def method_missing(meth, *args, &block)
@@ -61,6 +65,10 @@ module Interface
       @points ||= Hashie::Mash.new
     end
 
+    def _interface_adapter
+      @result_adapter || _settings.config.response_adapter
+    end
+
     def _settings
       @settings || ::Interface::DefaultSettings
     end
@@ -93,8 +101,8 @@ module Interface
       @print_doc ||= ->(i) { i.doc }
     end
 
-    def define_entity(name, &block)
-      ::Interface::PortEntity.new(name, _settings.config.response_adapter).tap { |port| port.instance_eval(&block) }
+    def define_entity(_name, &block)
+      ::Interface::PortEntity.new(_name, _interface_adapter).tap { |port| port.instance_eval(&block) }
     end
   end
 end
