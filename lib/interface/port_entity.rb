@@ -32,8 +32,8 @@ module Interface
       @handler = klass
     end
 
-    def contract(validation_schema)
-      @contract = validation_schema
+    def contract(&validation_schema)
+      @contract = Dry::Validation.Schema(&validation_schema)
     end
 
     def returns(klass)
