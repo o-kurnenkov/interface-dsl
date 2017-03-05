@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.name          = "interface-dsl"
   spec.version       = Interface::Dsl::VERSION
   spec.authors       = ["Oleksiy Kurnenkov"]
-  spec.email         = ["oleksiy.kurnenkov@onapp.com"]
+  spec.email         = ["o.kurnenkov@gmail.com"]
   spec.licenses      = ['MIT']
   spec.summary       = %q{Interface description DSL}
   spec.description   = %q{Make your Interfaces declarative!}
@@ -27,7 +27,6 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'dry-configurable', '~> 0.3'
   spec.add_runtime_dependency 'factorymethods', '~> 1.0'
 
-  spec.add_development_dependency 'factorymethods', '~> 1.0'
   spec.add_development_dependency "bundler", "~> 1.13"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"

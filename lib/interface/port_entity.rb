@@ -13,6 +13,19 @@ module Interface
       @description = text
     end
 
+    def struct(*fields)
+      @struct = fields
+    end
+
+    def proxy_factory(klass)
+      @proxy_factory = klass
+    end
+
+    def proxy(obj, options={})
+      return nil unless @proxy_factory
+      @proxy_factory.call(struct: @struct, contract: @contract, handler: @handler).new(obj, options)
+    end
+
     def call(*args, &block)
       if @handler.nil?
         fail(::Interface::Errors::HandlerMissingError.new("Handler is undefined"))
@@ -33,19 +46,13 @@ module Interface
     end
 
     def contract(&validation_schema)
-      @contract = Dry::Validation.Schema(&validation_schema)
+      @contract = validation_schema
     end
 
     def returns(klass)
       @adapter = klass
     end
 
-    # def returns(hash)
-    #   { success: [:ok,    Object],
-    #     failure: [:error, String] }
-    # end
-
-    #TODO
     def before_call; end
     def after_call; end
     def wrap_call; end
