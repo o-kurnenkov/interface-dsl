@@ -8,10 +8,6 @@ module Interface
     end
 
     def call(*args, &block)
-      unless callable.respond_to?(:call)
-        fail(Interface::Errors::AdaptationError.new("#{callable.class} is not callable!"))
-      end
-
       _call(*args, &block)
     end
 
@@ -28,7 +24,13 @@ module Interface
     end
 
     def _handle_request(*args, &block)
-      _wrap(callable.call(*args, &block))
+      if callable.respond_to?(:dispatch)
+        _wrap(callable.dispatch(*args, &block))
+      elsif callable.respond_to?(:call)
+        _wrap(callable.call(*args, &block))
+      else
+        fail(Interface::Errors::AdaptationError.new("#{callable.class} is not callable!"))
+      end
     rescue => e
       [:error, e]
     end

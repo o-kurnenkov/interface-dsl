@@ -437,7 +437,7 @@ describe Interface::DSL do
 
             humanoid.interface(:cognition) do
               defpoint(:criticism) do
-                contract  schema
+                contract  &schema
                 handler   TryThinking
               end
             end
