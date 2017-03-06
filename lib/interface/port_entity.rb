@@ -21,9 +21,13 @@ module Interface
       @proxy_factory = klass
     end
 
+    def proxy_model(name)
+      @proxy_model = name
+    end
+
     def proxy(obj, options={})
       return nil unless @proxy_factory
-      @proxy_factory.call(struct: @struct, contract: @contract, handler: @handler).new(obj, options)
+      @proxy_factory.call(struct: @struct, contract: @contract, handler: @handler, proxy_model: @proxy_model).new(obj, options)
     end
 
     def call(*args, &block)
